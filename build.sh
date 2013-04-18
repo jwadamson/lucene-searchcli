@@ -1,2 +1,2 @@
 #!/bin/bash
-mvn assembly:single
+mvn package assembly:single
