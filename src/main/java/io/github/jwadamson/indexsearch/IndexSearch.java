@@ -2,7 +2,14 @@ package io.github.jwadamson.indexsearch;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.io.FileUtils;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -23,19 +30,50 @@ public class IndexSearch {
      * @param args
      * @throws IOException
      * @throws ParseException
+     * @throws org.apache.commons.cli.ParseException
      */
     public static void main(String[] args)
-    throws IOException, ParseException {
+    throws IOException, ParseException, org.apache.commons.cli.ParseException {
+
+        Options opts = new Options();
+        Option indexDirOpt = new Option(null, "index", true, "the index directory");
+        indexDirOpt.setRequired(true);
+        opts.addOption(indexDirOpt);
+
+        Option queryFile = new Option(null, "queryFile", true, "a file containing the query");
+        opts.addOption(queryFile);
+
+        Option maxResultsOption = new Option(null, "maxResults", true, "maximum number of results");
+        opts.addOption(maxResultsOption);
+
 
         //
         // parse CLI
         //
-        assert args.length == 2 : "Usage: indexsearch.groovy <index dir> <query>";
+        CommandLineParser parser = new GnuParser();
+        CommandLine line = parser.parse(opts, args);
 
-        File indexDir = new File(args[0]);  // Index directory create by Indexer
-        String queryString = args[1];  // Query string
+        String indexPath = line.getOptionValue("index");
+        String queryFilePath = line.getOptionValue("queryFile");
+        String maxResultsString = line.getOptionValue("maxResults", "100");
+
+        File indexDir = new File(indexPath);  // Index directory create by Indexer
+        String queryString;  // Query string
+        if (queryFilePath != null) {
+            queryString = FileUtils.readFileToString(new File(queryFilePath));
+        }
+        else {
+            @SuppressWarnings("unchecked")
+            List<String> argList = line.getArgList();
+            if (argList.size() != 1) {
+                throw new RuntimeException("Either a query file or string must be supplied");
+            }
+            queryString = argList.get(0);
+        }
 
         assert indexDir.isDirectory() : indexDir+" is not a directory";
+
+        int maxResults = Integer.valueOf(maxResultsString);
 
         //
         // Perform Search
@@ -51,7 +89,7 @@ public class IndexSearch {
 
             Query query = queryParser.parse(queryString);  // Parse query
             long start = System.currentTimeMillis();
-            TopDocs topDocs = indexSearcher.search(query, 10);  // Search index, top ten results
+            TopDocs topDocs = indexSearcher.search(query, maxResults); // search index
             long end = System.currentTimeMillis();
 
             String msg = "Found %s documents in %s millisconds that matched query %s";
