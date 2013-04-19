@@ -17,7 +17,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.analysis.SimpleAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
 
 public class IndexSearch {
@@ -84,7 +84,8 @@ public class IndexSearch {
         boolean closeQuiety = true;
         try {
 
-            QueryParser queryParser = new QueryParser(Version.LUCENE_30, "field", new SimpleAnalyzer());
+            Version ver = Version.LUCENE_30;
+            QueryParser queryParser = new QueryParser(ver, "field", new StandardAnalyzer(ver));
             queryParser.setAllowLeadingWildcard(true);
 
             Query query = queryParser.parse(queryString);  // Parse query
