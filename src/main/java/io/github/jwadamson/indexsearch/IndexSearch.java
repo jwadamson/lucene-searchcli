@@ -25,6 +25,22 @@ public class IndexSearch {
     //**************************************************************************
     // CLASS
     //**************************************************************************
+    static private Options opts = new Options();
+    static {
+
+        Option indexDirOpt = new Option("i", "index", true, "the index directory");
+        indexDirOpt.setRequired(true);
+        opts.addOption(indexDirOpt);
+
+        Option defaultField = new Option("d", "defaultField", true, "default field name (default keywords)");
+        opts.addOption(defaultField);
+
+        Option queryFile = new Option("q", "queryFile", true, "a file containing the query");
+        opts.addOption(queryFile);
+
+        Option maxResultsOption = new Option("m", "maxResults", true, "maximum number of results");
+        opts.addOption(maxResultsOption);
+    }
 
     /**
      * @param args
@@ -35,18 +51,6 @@ public class IndexSearch {
     public static void main(String[] args)
     throws IOException, ParseException, org.apache.commons.cli.ParseException {
 
-        Options opts = new Options();
-        Option indexDirOpt = new Option(null, "index", true, "the index directory");
-        indexDirOpt.setRequired(true);
-        opts.addOption(indexDirOpt);
-
-        Option queryFile = new Option(null, "queryFile", true, "a file containing the query");
-        opts.addOption(queryFile);
-
-        Option maxResultsOption = new Option(null, "maxResults", true, "maximum number of results");
-        opts.addOption(maxResultsOption);
-
-
         //
         // parse CLI
         //
@@ -56,6 +60,7 @@ public class IndexSearch {
         String indexPath = line.getOptionValue("index");
         String queryFilePath = line.getOptionValue("queryFile");
         String maxResultsString = line.getOptionValue("maxResults", "100");
+        String defaultFieldName = line.getOptionValue('d', "keywords");
 
         File indexDir = new File(indexPath);  // Index directory create by Indexer
         String queryString;  // Query string
@@ -85,7 +90,7 @@ public class IndexSearch {
         try {
 
             Version ver = Version.LUCENE_30;
-            QueryParser queryParser = new QueryParser(ver, "field", new StandardAnalyzer(ver));
+            QueryParser queryParser = new QueryParser(ver, defaultFieldName, new StandardAnalyzer(ver));
             queryParser.setAllowLeadingWildcard(true);
 
             Query query = queryParser.parse(queryString);  // Parse query
@@ -93,8 +98,8 @@ public class IndexSearch {
             TopDocs topDocs = indexSearcher.search(query, maxResults); // search index
             long end = System.currentTimeMillis();
 
-            String msg = "Found %s documents in %s millisconds that matched query %s";
-            System.out.println(String.format(msg, topDocs.totalHits, end - start, queryString));
+            String msg = "Found %s documents in %s millisconds that matched query '%s'";
+            System.out.println(String.format(msg, topDocs.totalHits, end - start, query));
             System.out.println();
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 System.out.println(indexSearcher.doc(scoreDoc.doc));
