@@ -15,6 +15,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -77,7 +78,6 @@ public class IndexSearch {
         }
 
         assert indexDir.isDirectory() : indexDir+" is not a directory";
-
         int maxResults = Integer.valueOf(maxResultsString);
 
         //
@@ -85,15 +85,38 @@ public class IndexSearch {
         //
 
         FSDirectory fsDir = FSDirectory.open(indexDir);
-        IndexSearcher indexSearcher = new IndexSearcher(fsDir, true);  // Open index as read only
-        boolean closeQuiety = true;
         try {
-
             Version ver = Version.LUCENE_30;
             QueryParser queryParser = new QueryParser(ver, defaultFieldName, new StandardAnalyzer(ver));
             queryParser.setAllowLeadingWildcard(true);
 
             Query query = queryParser.parse(queryString);  // Parse query
+
+            IndexSearch search = new IndexSearch(fsDir);
+            search.execute(query, maxResults);
+        }
+        finally {
+            fsDir.close();
+        }
+    }
+
+    //**************************************************************************
+    // INSTANCE
+    //**************************************************************************
+
+    final FSDirectory fsDir;
+
+    public IndexSearch(FSDirectory fsDir) {
+        this.fsDir = fsDir;
+    }
+
+    public void execute(Query query, int maxResults)
+    throws CorruptIndexException, IOException {
+
+        IndexSearcher indexSearcher = new IndexSearcher(fsDir, true);  // Open index as read only
+        boolean closeQuiety = true;
+        try {
+
             long start = System.currentTimeMillis();
             TopDocs topDocs = indexSearcher.search(query, maxResults); // search index
             long end = System.currentTimeMillis();
@@ -117,8 +140,4 @@ public class IndexSearch {
             }
         }
     }
-
-    //**************************************************************************
-    // INSTANCE
-    //**************************************************************************
 }
